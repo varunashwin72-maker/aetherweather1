@@ -77,7 +77,6 @@ export function DayHourlyDetail({ day, hours, settings }: Props) {
 function DaySummary({ hours, settings }: { hours: HourForecast[]; settings: Settings }) {
   if (hours.length === 0) return null;
 
-  const temps = hours.map((h) => convertTemp(h.temperature, settings.tempUnit));
   const feels = hours.map((h) => convertTemp(h.apparentTemperature, settings.tempUnit));
   const winds = hours.map((h) => convertWind(h.windSpeed, settings.windUnit));
   const gusts = hours.map((h) => convertWind(h.windGusts, settings.windUnit));

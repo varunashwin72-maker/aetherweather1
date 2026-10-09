@@ -292,7 +292,6 @@ function normalizeDaily(items: OWForecastItem[], city: OWForecastResponse['city'
 
     const condition = conditionFromOpenWeatherId(dominantWeatherId, true);
     const date = parseDateString(dateKey, tzOffset);
-    const dayLength = city.sunset - city.sunrise;
 
     out.push({
       date,

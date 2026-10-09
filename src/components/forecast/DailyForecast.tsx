@@ -1,18 +1,20 @@
 import { useState } from 'react';
 import { ChevronDown, Droplets, Wind, Sun, Thermometer } from 'lucide-react';
-import type { DayForecast } from '@/types/weather';
+import type { DayForecast, HourForecast } from '@/types/weather';
 import type { Settings } from '@/utils/formatters';
 import { convertTemp, convertWind, tempUnitLabel, windUnitLabel } from '@/utils/formatters';
 import { conditionMeta } from '@/utils/weatherConditions';
 import { WeatherIcon } from '@/components/weather/WeatherIcon';
+import { DayHourlyDetail } from '@/components/forecast/DayHourlyDetail';
 import { cn } from '@/utils/cn';
 
 interface Props {
   days: DayForecast[];
+  hours: HourForecast[];
   settings: Settings;
 }
 
-export function DailyForecast({ days, settings }: Props) {
+export function DailyForecast({ days, hours, settings }: Props) {
   const [open, setOpen] = useState<number | null>(0);
   const overallMin = Math.min(...days.map((d) => d.tempMin));
   const overallMax = Math.max(...days.map((d) => d.tempMax));
@@ -73,11 +75,19 @@ export function DailyForecast({ days, settings }: Props) {
               </button>
 
               {isOpen && (
-                <div className="grid grid-cols-2 gap-3 px-4 pb-4 pt-1 sm:grid-cols-4 animate-fade-in">
-                  <Detail icon={<Thermometer className="h-4 w-4" />} label="High / Low" value={`${max}${tempUnitLabel(settings.tempUnit)} / ${min}${tempUnitLabel(settings.tempUnit)}`} />
-                  <Detail icon={<Wind className="h-4 w-4" />} label="Wind" value={`${Math.round(convertWind(day.windSpeedMax, settings.windUnit))} ${windUnitLabel(settings.windUnit)}`} />
-                  <Detail icon={<Sun className="h-4 w-4" />} label="UV Max" value={`${Math.round(day.uvIndexMax)}`} />
-                  <Detail icon={<Droplets className="h-4 w-4" />} label="Precip." value={`${day.precipitationProbability}%`} />
+                <div className="flex flex-col gap-3 animate-fade-in">
+                  <div className="grid grid-cols-2 gap-3 px-4 pt-1 sm:grid-cols-4">
+                    <Detail icon={<Thermometer className="h-4 w-4" />} label="High / Low" value={`${max}${tempUnitLabel(settings.tempUnit)} / ${min}${tempUnitLabel(settings.tempUnit)}`} />
+                    <Detail icon={<Wind className="h-4 w-4" />} label="Wind" value={`${Math.round(convertWind(day.windSpeedMax, settings.windUnit))} ${windUnitLabel(settings.windUnit)}`} />
+                    <Detail icon={<Sun className="h-4 w-4" />} label="UV Max" value={`${Math.round(day.uvIndexMax)}`} />
+                    <Detail icon={<Droplets className="h-4 w-4" />} label="Precip." value={`${day.precipitationProbability}%`} />
+                  </div>
+                  <div className="px-2">
+                    <p className="mb-1.5 px-2 text-[11px] font-medium uppercase tracking-wider text-white/45">
+                      Hour by Hour
+                    </p>
+                    <DayHourlyDetail day={day} hours={hours} settings={settings} />
+                  </div>
                 </div>
               )}
             </div>

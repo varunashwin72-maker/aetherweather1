@@ -13,7 +13,7 @@ export function Forecast({ data, settings }: Props) {
   return (
     <div className="flex flex-col gap-8">
       <HourlyForecast hours={data.hourly} settings={settings} />
-      <DailyForecast days={data.daily} settings={settings} />
+      <DailyForecast days={data.daily} hours={data.hourly} settings={settings} />
       <SunMoonPanel astronomy={data.astronomy} />
     </div>
   );

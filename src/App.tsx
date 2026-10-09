@@ -3,8 +3,9 @@ import type { GeoLocation } from '@/types/weather';
 import { SettingsProvider, useSettings } from '@/hooks/useSettings';
 import { useWeather } from '@/hooks/useWeather';
 import { useGeolocation } from '@/hooks/useLocation';
+import { ApiError } from '@/lib/api';
 import { useFavorites } from '@/hooks/useFavorites';
-import { MapPin } from 'lucide-react';
+import { MapPin, LocateFixed, Loader2, X } from 'lucide-react';
 import { Navbar, type NavId } from '@/components/navigation/Navbar';
 import { MobileNav } from '@/components/navigation/MobileNav';
 import { SearchBar } from '@/components/navigation/SearchBar';
@@ -46,6 +47,8 @@ function AppInner() {
   );
   const { permission, locating, requestCurrent } = useGeolocation();
   const { favorites, recents, addFavorite, removeFavorite, reorderFavorites, addRecent } = useFavorites();
+  const [geoError, setGeoError] = useState<string | null>(null);
+  const [hasAutoDetected, setHasAutoDetected] = useState(false);
 
   useEffect(() => {
     try {
@@ -62,13 +65,29 @@ function AppInner() {
   );
 
   const handleUseCurrent = useCallback(async () => {
+    setGeoError(null);
     try {
       const loc = await requestCurrent();
       handleSelect(loc);
-    } catch {
-      /* error surfaced via permission state */
+    } catch (e) {
+      if (e instanceof ApiError) setGeoError(e.message);
+      else setGeoError('Could not get your current location.');
     }
   }, [requestCurrent, handleSelect]);
+
+  useEffect(() => {
+    if (hasAutoDetected) return;
+    const storedExists = (() => {
+      try { return !!localStorage.getItem('aether.lastLocation'); } catch { return false; }
+    })();
+    if (storedExists) {
+      setHasAutoDetected(true);
+      return;
+    }
+    if (permission === 'denied') { setHasAutoDetected(true); return; }
+    setHasAutoDetected(true);
+    void handleUseCurrent();
+  }, [permission, hasAutoDetected, handleUseCurrent]);
 
   const isFavorite = useMemo(
     () => favorites.some((f) => f.id === location.id),
@@ -113,13 +132,39 @@ function AppInner() {
 
         <main className="mx-auto max-w-7xl px-4 pb-24 pt-20 sm:px-6 lg:pb-12">
           {/* Selected location banner */}
-          <div className="mb-6 flex items-center gap-2 text-sm text-white/80">
+          <div className="mb-6 flex flex-wrap items-center gap-2 text-sm text-white/80">
             <MapPin className="h-4 w-4 shrink-0 text-aether-300" />
             <span className="text-white/60">Selected location:</span>
             <span className="font-semibold text-white">{location.name}</span>
             {location.region && <span className="text-white/50">· {location.region}</span>}
             {location.country && <span className="text-white/50">· {location.country}</span>}
+            <button
+              onClick={handleUseCurrent}
+              disabled={locating}
+              className="ml-2 flex items-center gap-1.5 rounded-full border border-aether-300/30 bg-aether-500/20 px-3 py-1 text-xs font-medium text-white transition hover:bg-aether-500/40 disabled:opacity-60"
+              aria-label="Use my current location"
+            >
+              {locating ? (
+                <Loader2 className="h-3 w-3 animate-spin" />
+              ) : (
+                <LocateFixed className="h-3 w-3" />
+              )}
+              {locating ? 'Locating...' : 'Use my location'}
+            </button>
           </div>
+
+          {geoError && (
+            <div className="mb-4 flex items-center gap-2 rounded-xl border border-amber-400/20 bg-amber-500/10 px-4 py-3 text-sm text-amber-200 animate-fade-in">
+              <span className="flex-1">{geoError}</span>
+              <button
+                onClick={() => setGeoError(null)}
+                className="rounded-full p-1 text-amber-300/70 hover:bg-amber-500/20 hover:text-amber-200"
+                aria-label="Dismiss"
+              >
+                <X className="h-3.5 w-3.5" />
+              </button>
+            </div>
+          )}
 
           {/* Mobile search */}
           <div className="mb-6 sm:hidden">

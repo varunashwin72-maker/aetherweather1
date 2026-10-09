@@ -29,7 +29,7 @@ export function Home({ data, settings, loading, lastUpdated, onRefresh }: Props)
         onToggleFavorite={() => {}}
       />
 
-      <HourlyForecast hours={data.hourly} settings={settings} />
+      <HourlyForecast hours={data.hourly} days={data.daily} settings={settings} />
 
       <div className="grid gap-6 lg:grid-cols-2">
         <InsightsPanel data={data} />

@@ -1,0 +1,112 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  color-scheme: dark;
+}
+
+html,
+body,
+#root {
+  height: 100%;
+}
+
+body {
+  margin: 0;
+  font-family: 'Inter', system-ui, -apple-system, sans-serif;
+  background: #050b18;
+  color: #e6efff;
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+  overflow-x: hidden;
+}
+
+::selection {
+  background: rgba(58, 155, 248, 0.35);
+  color: #fff;
+}
+
+/* Scrollbars */
+* {
+  scrollbar-width: thin;
+  scrollbar-color: rgba(120, 170, 240, 0.35) transparent;
+}
+*::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+*::-webkit-scrollbar-track {
+  background: transparent;
+}
+*::-webkit-scrollbar-thumb {
+  background: rgba(120, 170, 240, 0.3);
+  border-radius: 999px;
+}
+*::-webkit-scrollbar-thumb:hover {
+  background: rgba(120, 170, 240, 0.5);
+}
+
+.no-scrollbar {
+  scrollbar-width: none;
+}
+.no-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+
+@layer components {
+  .glass {
+    @apply border border-white/10 bg-white/[0.06] backdrop-blur-xl;
+  }
+  .glass-strong {
+    @apply border border-white/15 bg-white/[0.1] backdrop-blur-2xl;
+  }
+  .glass-card {
+    @apply glass rounded-2xl shadow-glass;
+  }
+}
+
+/* Hide native number spinners */
+input[type='number']::-webkit-outer-spin-button,
+input[type='number']::-webkit-inner-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
+
+/* Focus visibility */
+:where(a, button, input, [tabindex]):focus-visible {
+  outline: 2px solid #7fbffb;
+  outline-offset: 2px;
+  border-radius: 6px;
+}
+
+@keyframes pulse-marker {
+  0%, 100% { box-shadow: 0 0 0 6px rgba(56,189,248,.25), 0 2px 12px rgba(0,0,0,.5); }
+  50% { box-shadow: 0 0 0 12px rgba(56,189,248,.1), 0 2px 12px rgba(0,0,0,.5); }
+}
+
+.leaflet-container {
+  background: #0a0f1a !important;
+}
+
+.leaflet-control-attribution {
+  background: rgba(5,11,24,.7) !important;
+  color: rgba(255,255,255,.5) !important;
+  font-size: 10px !important;
+  border-radius: 4px 0 0 0;
+}
+
+.leaflet-control-attribution a {
+  color: rgba(127,191,251,.7) !important;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.001ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.001ms !important;
+    scroll-behavior: auto !important;
+  }
+}

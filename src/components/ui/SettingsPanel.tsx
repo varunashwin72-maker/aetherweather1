@@ -1,5 +1,7 @@
-import { Thermometer, Wind, Palette, Sparkles, RefreshCw, Bell, Eye, Moon } from 'lucide-react';
+import { Thermometer, Wind, Palette, Sparkles, RefreshCw, Bell, Eye, Moon, User, LogOut, Mail, Cloud } from 'lucide-react';
 import type { Settings } from '@/utils/formatters';
+import { useAuth } from '@/hooks/useAuth';
+import { useNotifications } from '@/hooks/useNotifications';
 import { cn } from '@/utils/cn';
 
 interface Props {
@@ -8,12 +10,47 @@ interface Props {
 }
 
 export function SettingsPanel({ settings, onChange }: Props) {
+  const { user, signOut } = useAuth();
+  const { notifications, unreadCount } = useNotifications();
+
   return (
     <div className="flex flex-col gap-4">
       <div className="flex items-center justify-between px-1">
         <h2 className="font-display text-lg font-semibold text-white">Settings</h2>
         <span className="text-xs text-white/50">Stored on this device</span>
       </div>
+
+      {/* User profile */}
+      {user && (
+        <div className="glass-card flex flex-col gap-4 px-4 py-4">
+          <div className="flex items-center gap-2 text-white">
+            <span className="text-aether-200"><User className="h-4 w-4" /></span>
+            <span className="text-sm font-semibold">Account</span>
+          </div>
+          <div className="flex items-center gap-3">
+            <span className="grid h-12 w-12 shrink-0 place-items-center rounded-2xl bg-gradient-to-br from-aether-400 to-aether-600 shadow-glow">
+              <Cloud className="h-6 w-6 text-white" strokeWidth={2.2} />
+            </span>
+            <div className="flex flex-1 flex-col gap-0.5 overflow-hidden">
+              <span className="flex items-center gap-1.5 text-sm font-medium text-white">
+                <Mail className="h-3.5 w-3.5 shrink-0 text-white/40" />
+                <span className="truncate">{user.email}</span>
+              </span>
+              <span className="text-xs text-white/45">
+                {notifications.length} alert{notifications.length !== 1 ? 's' : ''}
+                {unreadCount > 0 && <> · <span className="text-rose-300">{unreadCount} unread</span></>}
+              </span>
+            </div>
+          </div>
+          <button
+            onClick={() => void signOut()}
+            className="flex items-center justify-center gap-2 rounded-xl border border-white/15 px-4 py-2.5 text-sm font-medium text-white/80 transition hover:border-rose-400/30 hover:bg-rose-500/10 hover:text-rose-200"
+          >
+            <LogOut className="h-4 w-4" />
+            Sign Out
+          </button>
+        </div>
+      )}
 
       <Section icon={<Thermometer className="h-4 w-4" />} title="Temperature">
         <Segmented
@@ -79,7 +116,9 @@ export function SettingsPanel({ settings, onChange }: Props) {
 
       <div className="glass-card flex items-center gap-3 px-4 py-3 text-xs text-white/50">
         <Moon className="h-4 w-4 text-aether-200" />
-        AetherWeather stores your preferences and favorites locally on this device.
+        {user
+          ? 'Your alerts and notifications are synced to your account. Preferences and favorites are stored locally on this device.'
+          : 'AetherWeather stores your preferences and favorites locally on this device.'}
       </div>
     </div>
   );

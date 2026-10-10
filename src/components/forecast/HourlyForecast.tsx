@@ -313,7 +313,7 @@ function TempGraph({
     return { x, y, t };
   });
   const path = points.map((p, i) => `${i === 0 ? 'M' : 'L'}${p.x.toFixed(2)},${p.y.toFixed(2)}`).join(' ');
-  const area = `${path} L${width},${height} L0,height Z`;
+  const area = `${path} L${width},${height} L0,${height} Z`;
 
   return (
     <div className="glass-card relative overflow-hidden px-4 py-3">

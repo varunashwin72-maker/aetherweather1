@@ -43,7 +43,7 @@ export async function searchLocations(query: string, count = 8): Promise<GeoLoca
     const data = await safeFetchJson<OpenMeteoGeoResponse>(url);
     return (data.results ?? []).map(mapGeo);
   } catch (e) {
-    if (e instanceof ApiError && e.type === 'not-found') return [];
+    if (e instanceof ApiError && (e.type === 'not-found' || e.status === 400)) return [];
     throw e;
   }
 }

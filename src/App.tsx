@@ -5,6 +5,8 @@ import { useWeather } from '@/hooks/useWeather';
 import { useGeolocation } from '@/hooks/useLocation';
 import { ApiError } from '@/lib/api';
 import { useFavorites } from '@/hooks/useFavorites';
+import { AuthProvider, useAuth } from '@/hooks/useAuth';
+import { useAlertNotifier } from '@/hooks/useAlertNotifier';
 import { MapPin, LocateFixed, Loader2, X } from 'lucide-react';
 import { Navbar, type NavId } from '@/components/navigation/Navbar';
 import { MobileNav } from '@/components/navigation/MobileNav';
@@ -14,12 +16,14 @@ import { ErrorState } from '@/components/ui/ErrorState';
 import { Skeleton } from '@/components/ui/Skeleton';
 import { SettingsPanel } from '@/components/ui/SettingsPanel';
 import { FavoritesPanel } from '@/components/navigation/FavoritesPanel';
+import { NotificationBell } from '@/components/ui/NotificationBell';
 import { Home } from '@/pages/Home';
 import { Forecast } from '@/pages/Forecast';
 import { Radar } from '@/pages/Radar';
 import { Maps } from '@/pages/Maps';
 import { Air } from '@/pages/Air';
 import { Alerts } from '@/pages/Alerts';
+import { LoginPage } from '@/pages/Login';
 
 const DEFAULT_LOCATION: GeoLocation = {
   id: 'om-5128581',
@@ -31,6 +35,7 @@ const DEFAULT_LOCATION: GeoLocation = {
 };
 
 function AppInner() {
+  const { user, loading: authLoading } = useAuth();
   const { settings, setSettings, motion } = useSettings();
   const [active, setActive] = useState<NavId>('home');
   const [location, setLocation] = useState<GeoLocation>(() => {
@@ -49,6 +54,16 @@ function AppInner() {
   const { favorites, recents, addFavorite, removeFavorite, reorderFavorites, addRecent } = useFavorites();
   const [geoError, setGeoError] = useState<string | null>(null);
   const [hasAutoDetected, setHasAutoDetected] = useState(false);
+
+  // Request browser notification permission when setting is enabled
+  useEffect(() => {
+    if (settings.notifications && 'Notification' in window && Notification.permission === 'default') {
+      Notification.requestPermission().catch(() => { /* ignore */ });
+    }
+  }, [settings.notifications]);
+
+  // Fire alert notifications for logged-in users
+  useAlertNotifier(data?.alerts ?? [], location, settings.notifications);
 
   useEffect(() => {
     try {
@@ -102,6 +117,23 @@ function AppInner() {
   const condition = data?.current.condition ?? 'partly-cloudy';
   const isDay = data?.current.isDay ?? true;
 
+  // Show login page when not authenticated (after auth has finished loading)
+  if (!authLoading && !user) {
+    return <LoginPage />;
+  }
+
+  // Show loading state while auth is being restored
+  if (authLoading) {
+    return (
+      <div className="relative min-h-screen">
+        <WeatherBackground condition="partly-cloudy" isDay motion="reduced" enabled />
+        <div className="relative z-10 flex min-h-screen items-center justify-center">
+          <Loader2 className="h-8 w-8 animate-spin text-aether-300" />
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="relative min-h-screen">
       <WeatherBackground
@@ -116,16 +148,19 @@ function AppInner() {
           active={active}
           onChange={setActive}
           rightSlot={
-            <div className="hidden w-64 sm:block md:w-72 lg:w-80">
-              <SearchBar
-                onSelect={handleSelect}
-                onUseCurrent={handleUseCurrent}
-                locating={locating}
-                recents={recents}
-                favorites={favorites}
-                isFavorite={isFavorite}
-                onToggleFavorite={() => toggleFavorite()}
-              />
+            <div className="flex items-center gap-3">
+              <div className="hidden w-56 sm:block md:w-64 lg:w-72">
+                <SearchBar
+                  onSelect={handleSelect}
+                  onUseCurrent={handleUseCurrent}
+                  locating={locating}
+                  recents={recents}
+                  favorites={favorites}
+                  isFavorite={isFavorite}
+                  onToggleFavorite={() => toggleFavorite()}
+                />
+              </div>
+              <NotificationBell />
             </div>
           }
         />
@@ -255,8 +290,10 @@ function RetryButton({ onClick }: { onClick: () => void }) {
 
 export default function App() {
   return (
-    <SettingsProvider>
-      <AppInner />
-    </SettingsProvider>
+    <AuthProvider>
+      <SettingsProvider>
+        <AppInner />
+      </SettingsProvider>
+    </AuthProvider>
   );
 }

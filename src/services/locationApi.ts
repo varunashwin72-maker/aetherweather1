@@ -19,6 +19,15 @@ interface OpenMeteoGeoResponse {
   results?: OpenMeteoGeoResult[];
 }
 
+interface BigDataCloudResult {
+  city?: string;
+  locality?: string;
+  principalLocality?: string;
+  localityInfo?: { administrative?: { name?: string }[] };
+  countryName?: string;
+  countryCode?: string;
+}
+
 export async function searchLocations(query: string, count = 8): Promise<GeoLocation[]> {
   const trimmed = query.trim();
   if (trimmed.length < 2) return [];
@@ -44,12 +53,27 @@ export async function reverseGeocode(lat: number, lon: number): Promise<GeoLocat
     return owReverseGeocode(lat, lon);
   }
 
-  const url = `${OPEN_METEO_GEO_BASE}/search?latitude=${lat.toFixed(
-    4
-  )}&longitude=${lon.toFixed(4)}&count=1&language=en&format=json`;
-  const data = await safeFetchJson<OpenMeteoGeoResponse>(url);
-  const hit = data.results?.[0];
-  if (hit) return mapGeo(hit);
+  // Open-Meteo's geocoding API does not support reverse lookups, so we use
+  // BigDataCloud's free reverse-geocode endpoint to get a place name.
+  try {
+    const url = `https://api.bigdatacloud.net/data/reverse-geocode-client?latitude=${lat.toFixed(6)}&longitude=${lon.toFixed(6)}&localityLanguage=en`;
+    const data = await safeFetchJson<BigDataCloudResult>(url);
+    const name = data.city || data.locality || data.principalLocality || '';
+    const region = data.localityInfo?.administrative?.[0]?.name;
+    if (name) {
+      return {
+        id: `geo-${lat.toFixed(4)}-${lon.toFixed(4)}`,
+        name,
+        region,
+        country: data.countryName,
+        latitude: lat,
+        longitude: lon,
+      };
+    }
+  } catch {
+    /* fall through to coordinates */
+  }
+
   return {
     id: `geo-${lat.toFixed(2)}-${lon.toFixed(2)}`,
     name: `${lat.toFixed(2)}, ${lon.toFixed(2)}`,

@@ -1,11 +1,22 @@
 import { useEffect, useRef, useState } from 'react';
-import { MapPin, Plus, Minus, Layers, Crosshair, Loader2, CloudRain } from 'lucide-react';
+import { MapPin, Plus, Minus, Layers, Crosshair, Loader2, CloudRain, CloudOff } from 'lucide-react';
 import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
 import type { GeoLocation } from '@/types/weather';
 import { cn } from '@/utils/cn';
 import { reverseGeocode } from '@/services/locationApi';
 import { config } from '@/lib/config';
+
+function escapeHtml(s: string): string {
+  return s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;').replace(/'/g, '&#39;');
+}
+
+function locationPopup(loc: GeoLocation): string {
+  const name = escapeHtml(loc.name);
+  const region = loc.region ? `<br/>${escapeHtml(loc.region)}` : '';
+  const country = loc.country ? `<br/>${escapeHtml(loc.country)}` : '';
+  return `<b>${name}</b>${region}${country}`;
+}
 
 type Layer = 'radar' | 'temperature' | 'precipitation' | 'wind' | 'cloud';
 
@@ -77,7 +88,7 @@ export function WeatherMap({ location, onSelectLocation }: Props) {
     });
 
     const marker = L.marker([location.latitude, location.longitude], { icon }).addTo(map);
-    marker.bindPopup(`<b>${location.name}</b>${location.country ? `<br/>${location.country}` : ''}`);
+    marker.bindPopup(locationPopup(location));
     markerRef.current = marker;
 
     // Click handler — drop a temp marker and ask user to confirm
@@ -134,7 +145,7 @@ export function WeatherMap({ location, onSelectLocation }: Props) {
     const marker = markerRef.current;
     if (!map || !marker) return;
     marker.setLatLng([location.latitude, location.longitude]);
-    marker.bindPopup(`<b>${location.name}</b>${location.country ? `<br/>${location.country}` : ''}`);
+    marker.bindPopup(locationPopup(location));
     map.setView([location.latitude, location.longitude], map.getZoom() < 8 ? 8 : map.getZoom(), {
       animate: true,
       duration: 0.8,
@@ -313,9 +324,21 @@ export function WeatherMap({ location, onSelectLocation }: Props) {
       </div>
 
       <p className="px-1 text-xs text-white/45">
-        Click anywhere on the map to check the weather at that spot. Live radar and weather overlays are powered
-        by OpenWeather.
+        Click anywhere on the map to check the weather at that spot.
+        {OW_KEY
+          ? ' Live radar and weather overlays are powered by OpenWeather.'
+          : ' Weather overlays require an OpenWeather API key — the base map is still fully interactive.'}
       </p>
+
+      {!OW_KEY && (
+        <div className="glass-card flex items-center gap-3 px-4 py-3 text-sm text-amber-200/80">
+          <CloudOff className="h-5 w-5 shrink-0 text-amber-300" />
+          <span>
+            Weather overlays (radar, temperature, wind) are unavailable because no OpenWeather API key is configured.
+            The base map and click-to-explore features still work.
+          </span>
+        </div>
+      )}
     </div>
   );
 }

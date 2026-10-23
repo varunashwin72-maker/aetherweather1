@@ -127,7 +127,6 @@ export function HourlyForecast({ hours, days, settings }: Props) {
         {slice.map((h, i) => {
           const temp = Math.round(convertTemp(h.temperature, settings.tempUnit));
           const isSel = i === selected;
-          const meta = conditionMeta(h.condition);
           return (
             <button
               key={h.time}

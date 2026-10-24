@@ -1,0 +1,32 @@
+{
+  "previewPort": 3000,
+  "healthPath": "/",
+  "startCommand": "docker compose -f docker-compose.base44.yml up -d",
+  "secrets": [
+    {
+      "name": "VITE_SUPABASE_URL",
+      "description": "Supabase project URL for this app's hosted project — Supabase dashboard → Project Settings → API → Project URL (https://<project-ref>.supabase.co). A valid-format development placeholder is used until the real value is provided.",
+      "requiredAtBoot": true
+    },
+    {
+      "name": "VITE_SUPABASE_ANON_KEY",
+      "description": "Supabase anon/public API key — Supabase dashboard → Project Settings → API → Project API keys → anon public. Public by design (ships in the client bundle); never use the service_role key. A development placeholder is used until the real value is provided.",
+      "requiredAtBoot": true
+    },
+    {
+      "name": "VITE_WEATHER_API_KEY",
+      "description": "Optional. Only needed when VITE_WEATHER_API_PROVIDER=openweather; the default Open-Meteo provider is keyless.",
+      "requiredAtBoot": false
+    },
+    {
+      "name": "VITE_MAP_API_KEY",
+      "description": "Optional. Map/tile provider key; the base map uses OpenStreetMap by default.",
+      "requiredAtBoot": false
+    },
+    {
+      "name": "VITE_AIR_QUALITY_API_KEY",
+      "description": "Optional. Air-quality provider key; Open-Meteo Air Quality is keyless by default.",
+      "requiredAtBoot": false
+    }
+  ]
+}

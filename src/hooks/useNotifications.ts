@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState } from 'react';
-import { supabase } from '@/lib/supabase';
+import { supabase, isSupabaseConfigured } from '@/lib/supabase';
 import { useAuth } from '@/hooks/useAuth';
 import type { WeatherAlert } from '@/types/weather';
 
@@ -21,7 +21,7 @@ export function useNotifications() {
   const [loading, setLoading] = useState(false);
 
   const fetchNotifications = useCallback(async () => {
-    if (!user) {
+    if (!user || !isSupabaseConfigured) {
       setNotifications([]);
       setUnreadCount(0);
       return;
@@ -54,7 +54,7 @@ export function useNotifications() {
 
   // Realtime subscription for new notifications
   useEffect(() => {
-    if (!user) return;
+    if (!user || !isSupabaseConfigured) return;
 
     const channel = supabase
       .channel('user_alert_notifications_changes')
@@ -76,7 +76,7 @@ export function useNotifications() {
   }, [user, fetchNotifications]);
 
   const markAsRead = useCallback(async (id: string) => {
-    if (!user) return;
+    if (!user || !isSupabaseConfigured) return;
     const { error } = await supabase
       .from('user_alert_notifications')
       .update({ is_read: true })
@@ -91,7 +91,7 @@ export function useNotifications() {
   }, [user]);
 
   const markAllAsRead = useCallback(async () => {
-    if (!user) return;
+    if (!user || !isSupabaseConfigured) return;
     const { error } = await supabase
       .from('user_alert_notifications')
       .update({ is_read: true })
@@ -104,7 +104,7 @@ export function useNotifications() {
   }, [user]);
 
   const dismiss = useCallback(async (id: string) => {
-    if (!user) return;
+    if (!user || !isSupabaseConfigured) return;
     const { error } = await supabase
       .from('user_alert_notifications')
       .delete()

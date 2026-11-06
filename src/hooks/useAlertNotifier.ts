@@ -1,5 +1,5 @@
 import { useEffect, useRef } from 'react';
-import { supabase } from '@/lib/supabase';
+import { supabase, isSupabaseConfigured } from '@/lib/supabase';
 import { useAuth } from '@/hooks/useAuth';
 import type { WeatherAlert, GeoLocation } from '@/types/weather';
 
@@ -18,7 +18,7 @@ export function useAlertNotifier(
   const initialized = useRef(false);
 
   useEffect(() => {
-    if (!user) return;
+    if (!user || !isSupabaseConfigured) return;
 
     // Skip the very first run — we don't want to notify on alerts that were
     // already present when the page loaded. Only notify on NEW alerts that
@@ -58,6 +58,7 @@ export function useAlertNotifier(
 }
 
 async function persistAlerts(alerts: WeatherAlert[], userId: string, locationName: string) {
+  if (!isSupabaseConfigured) return;
   try {
     const rows = alerts.map((a) => ({
       user_id: userId,

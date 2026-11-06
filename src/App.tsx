@@ -7,6 +7,8 @@ import { ApiError } from '@/lib/api';
 import { useFavorites } from '@/hooks/useFavorites';
 import { AuthProvider, useAuth } from '@/hooks/useAuth';
 import { useAlertNotifier } from '@/hooks/useAlertNotifier';
+import { useSavedLocations } from '@/hooks/useSavedLocations';
+import { usePushNotifications } from '@/hooks/usePushNotifications';
 import { MapPin, LocateFixed, Loader2, X } from 'lucide-react';
 import { Navbar, type NavId } from '@/components/navigation/Navbar';
 import { MobileNav } from '@/components/navigation/MobileNav';
@@ -55,6 +57,12 @@ function AppInner() {
   const [geoError, setGeoError] = useState<string | null>(null);
   const [hasAutoDetected, setHasAutoDetected] = useState(false);
 
+  // Sync favorites + last-searched location to the database for background alert checks
+  useSavedLocations(favorites, location);
+
+  // Push notification subscription for the current device
+  const { pushSupported, pushEnabled, subscribe, unsubscribe } = usePushNotifications(settings.notifications);
+
   // Request browser notification permission when setting is enabled
   useEffect(() => {
     if (settings.notifications && 'Notification' in window && Notification.permission === 'default') {
@@ -64,6 +72,13 @@ function AppInner() {
 
   // Fire alert notifications for logged-in users
   useAlertNotifier(data?.alerts ?? [], location, settings.notifications);
+
+  // Auto-subscribe to push notifications when the user enables notifications
+  useEffect(() => {
+    if (settings.notifications && pushSupported && user && !pushEnabled) {
+      void subscribe();
+    }
+  }, [settings.notifications, pushSupported, user, pushEnabled, subscribe]);
 
   useEffect(() => {
     try {
@@ -247,7 +262,16 @@ function AppInner() {
                   onReorder={reorderFavorites}
                 />
               )}
-              {active === 'settings' && <SettingsPanel settings={settings} onChange={setSettings} />}
+              {active === 'settings' && (
+                <SettingsPanel
+                  settings={settings}
+                  onChange={setSettings}
+                  pushSupported={pushSupported}
+                  pushEnabled={pushEnabled}
+                  onSubscribe={subscribe}
+                  onUnsubscribe={unsubscribe}
+                />
+              )}
             </div>
           )}
         </main>

@@ -1,4 +1,4 @@
-import { Thermometer, Wind, Palette, Sparkles, RefreshCw, Bell, Eye, Moon, User, LogOut, Mail, Cloud } from 'lucide-react';
+import { Thermometer, Wind, Palette, Sparkles, RefreshCw, Bell, Eye, Moon, User, LogOut, Mail, Cloud, Smartphone, BellRing } from 'lucide-react';
 import type { Settings } from '@/utils/formatters';
 import { useAuth } from '@/hooks/useAuth';
 import { useNotifications } from '@/hooks/useNotifications';
@@ -7,9 +7,20 @@ import { cn } from '@/utils/cn';
 interface Props {
   settings: Settings;
   onChange: (s: Partial<Settings>) => void;
+  pushSupported: boolean;
+  pushEnabled: boolean;
+  onSubscribe: () => Promise<boolean>;
+  onUnsubscribe: () => Promise<boolean>;
 }
 
-export function SettingsPanel({ settings, onChange }: Props) {
+export function SettingsPanel({
+  settings,
+  onChange,
+  pushSupported,
+  pushEnabled,
+  onSubscribe,
+  onUnsubscribe,
+}: Props) {
   const { user, signOut } = useAuth();
   const { notifications, unreadCount } = useNotifications();
 
@@ -114,10 +125,38 @@ export function SettingsPanel({ settings, onChange }: Props) {
         </p>
       </Section>
 
+      {/* Push notifications for saved locations */}
+      <Section icon={<BellRing className="h-4 w-4" />} title="Early alert reminders">
+        <div className="flex flex-col gap-3">
+          <p className="text-xs text-white/55">
+            Get push notifications on this device for weather alerts across all your favorite
+            places and your last searched location — even when the tab isn't open.
+          </p>
+          {pushSupported ? (
+            <Toggle
+              checked={pushEnabled}
+              onChange={(v) => { void (v ? onSubscribe() : onUnsubscribe()); }}
+              label={pushEnabled ? 'Push alerts enabled on this device' : 'Enable push alerts on this device'}
+            />
+          ) : (
+            <div className="flex items-center gap-2 rounded-xl bg-white/5 px-3 py-2.5 text-xs text-white/45">
+              <Smartphone className="h-3.5 w-3.5 shrink-0" />
+              Push notifications aren't supported on this browser.
+            </div>
+          )}
+          {pushEnabled && (
+            <div className="flex items-center gap-2 rounded-xl bg-emerald-500/10 px-3 py-2.5 text-xs text-emerald-200">
+              <Smartphone className="h-3.5 w-3.5 shrink-0" />
+              This device will receive early weather alerts for your saved locations.
+            </div>
+          )}
+        </div>
+      </Section>
+
       <div className="glass-card flex items-center gap-3 px-4 py-3 text-xs text-white/50">
         <Moon className="h-4 w-4 text-aether-200" />
         {user
-          ? 'Your alerts and notifications are synced to your account. Preferences and favorites are stored locally on this device.'
+          ? 'Your alerts, saved locations, and device push subscriptions are synced to your account. Other preferences are stored locally on this device.'
           : 'AetherWeather stores your preferences and favorites locally on this device.'}
       </div>
     </div>

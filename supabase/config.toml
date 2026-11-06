@@ -1,0 +1,5 @@
+project_id = ""
+
+[functions.check-alerts]
+verify_jwt = true
+entrypoint = "./functions/check-alerts/index.ts"

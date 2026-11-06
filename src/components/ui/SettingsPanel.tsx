@@ -1,4 +1,4 @@
-import { Thermometer, Wind, Palette, Sparkles, RefreshCw, Bell, Eye, Moon, User, LogOut, Mail, Cloud, Smartphone, BellRing } from 'lucide-react';
+import { Thermometer, Wind, Palette, Sparkles, RefreshCw, Bell, Eye, Moon, User, LogOut, Mail, Cloud, Smartphone, BellRing, LogIn } from 'lucide-react';
 import type { Settings } from '@/utils/formatters';
 import { useAuth } from '@/hooks/useAuth';
 import { useNotifications } from '@/hooks/useNotifications';
@@ -11,6 +11,7 @@ interface Props {
   pushEnabled: boolean;
   onSubscribe: () => Promise<boolean>;
   onUnsubscribe: () => Promise<boolean>;
+  onOpenAuth: () => void;
 }
 
 export function SettingsPanel({
@@ -20,6 +21,7 @@ export function SettingsPanel({
   pushEnabled,
   onSubscribe,
   onUnsubscribe,
+  onOpenAuth,
 }: Props) {
   const { user, signOut } = useAuth();
   const { notifications, unreadCount } = useNotifications();
@@ -31,8 +33,8 @@ export function SettingsPanel({
         <span className="text-xs text-white/50">Stored on this device</span>
       </div>
 
-      {/* User profile */}
-      {user && (
+      {/* User profile or sign-in prompt */}
+      {user ? (
         <div className="glass-card flex flex-col gap-4 px-4 py-4">
           <div className="flex items-center gap-2 text-white">
             <span className="text-aether-200"><User className="h-4 w-4" /></span>
@@ -59,6 +61,24 @@ export function SettingsPanel({
           >
             <LogOut className="h-4 w-4" />
             Sign Out
+          </button>
+        </div>
+      ) : (
+        <div className="glass-card flex flex-col gap-3 px-4 py-4">
+          <div className="flex items-center gap-2 text-white">
+            <span className="text-aether-200"><Cloud className="h-4 w-4" /></span>
+            <span className="text-sm font-semibold">Account</span>
+          </div>
+          <p className="text-xs leading-relaxed text-white/55">
+            Sign in to sync your favorite places across devices and receive early weather
+            alert push notifications on this device.
+          </p>
+          <button
+            onClick={onOpenAuth}
+            className="flex items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-aether-500 to-aether-600 px-4 py-2.5 text-sm font-semibold text-white shadow-glow transition-all hover:from-aether-400 hover:to-aether-500"
+          >
+            <LogIn className="h-4 w-4" />
+            Sign In or Create Account
           </button>
         </div>
       )}
@@ -127,37 +147,52 @@ export function SettingsPanel({
 
       {/* Push notifications for saved locations */}
       <Section icon={<BellRing className="h-4 w-4" />} title="Early alert reminders">
-        <div className="flex flex-col gap-3">
-          <p className="text-xs text-white/55">
-            Get push notifications on this device for weather alerts across all your favorite
-            places and your last searched location — even when the tab isn't open.
-          </p>
-          {pushSupported ? (
-            <Toggle
-              checked={pushEnabled}
-              onChange={(v) => { void (v ? onSubscribe() : onUnsubscribe()); }}
-              label={pushEnabled ? 'Push alerts enabled on this device' : 'Enable push alerts on this device'}
-            />
-          ) : (
-            <div className="flex items-center gap-2 rounded-xl bg-white/5 px-3 py-2.5 text-xs text-white/45">
-              <Smartphone className="h-3.5 w-3.5 shrink-0" />
-              Push notifications aren't supported on this browser.
-            </div>
-          )}
-          {pushEnabled && (
-            <div className="flex items-center gap-2 rounded-xl bg-emerald-500/10 px-3 py-2.5 text-xs text-emerald-200">
-              <Smartphone className="h-3.5 w-3.5 shrink-0" />
-              This device will receive early weather alerts for your saved locations.
-            </div>
-          )}
-        </div>
+        {user ? (
+          <div className="flex flex-col gap-3">
+            <p className="text-xs text-white/55">
+              Get push notifications on this device for weather alerts across all your favorite
+              places and your last searched location — even when the tab isn't open.
+            </p>
+            {pushSupported ? (
+              <Toggle
+                checked={pushEnabled}
+                onChange={(v) => { void (v ? onSubscribe() : onUnsubscribe()); }}
+                label={pushEnabled ? 'Push alerts enabled on this device' : 'Enable push alerts on this device'}
+              />
+            ) : (
+              <div className="flex items-center gap-2 rounded-xl bg-white/5 px-3 py-2.5 text-xs text-white/45">
+                <Smartphone className="h-3.5 w-3.5 shrink-0" />
+                Push notifications aren't supported on this browser.
+              </div>
+            )}
+            {pushEnabled && (
+              <div className="flex items-center gap-2 rounded-xl bg-emerald-500/10 px-3 py-2.5 text-xs text-emerald-200">
+                <Smartphone className="h-3.5 w-3.5 shrink-0" />
+                This device will receive early weather alerts for your saved locations.
+              </div>
+            )}
+          </div>
+        ) : (
+          <div className="flex flex-col gap-3">
+            <p className="text-xs text-white/55">
+              Sign in to enable push notifications for weather alerts across all your saved locations.
+            </p>
+            <button
+              onClick={onOpenAuth}
+              className="flex items-center justify-center gap-2 rounded-xl border border-aether-300/30 bg-aether-500/20 px-4 py-2.5 text-sm font-medium text-white transition hover:bg-aether-500/40"
+            >
+              <LogIn className="h-4 w-4" />
+              Sign in to enable
+            </button>
+          </div>
+        )}
       </Section>
 
       <div className="glass-card flex items-center gap-3 px-4 py-3 text-xs text-white/50">
         <Moon className="h-4 w-4 text-aether-200" />
         {user
           ? 'Your alerts, saved locations, and device push subscriptions are synced to your account. Other preferences are stored locally on this device.'
-          : 'AetherWeather stores your preferences and favorites locally on this device.'}
+          : 'AetherWeather stores your preferences and favorites locally on this device. Sign in to sync across devices.'}
       </div>
     </div>
   );

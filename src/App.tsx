@@ -9,7 +9,7 @@ import { AuthProvider, useAuth } from '@/hooks/useAuth';
 import { useAlertNotifier } from '@/hooks/useAlertNotifier';
 import { useSavedLocations } from '@/hooks/useSavedLocations';
 import { usePushNotifications } from '@/hooks/usePushNotifications';
-import { MapPin, LocateFixed, Loader2, X } from 'lucide-react';
+import { MapPin, LocateFixed, Loader2, X, LogIn } from 'lucide-react';
 import { Navbar, type NavId } from '@/components/navigation/Navbar';
 import { MobileNav } from '@/components/navigation/MobileNav';
 import { SearchBar } from '@/components/navigation/SearchBar';
@@ -19,13 +19,13 @@ import { Skeleton } from '@/components/ui/Skeleton';
 import { SettingsPanel } from '@/components/ui/SettingsPanel';
 import { FavoritesPanel } from '@/components/navigation/FavoritesPanel';
 import { NotificationBell } from '@/components/ui/NotificationBell';
+import { AuthPanel } from '@/components/ui/AuthPanel';
 import { Home } from '@/pages/Home';
 import { Forecast } from '@/pages/Forecast';
 import { Radar } from '@/pages/Radar';
 import { Maps } from '@/pages/Maps';
 import { Air } from '@/pages/Air';
 import { Alerts } from '@/pages/Alerts';
-import { LoginPage } from '@/pages/Login';
 
 const DEFAULT_LOCATION: GeoLocation = {
   id: 'om-5128581',
@@ -40,6 +40,7 @@ function AppInner() {
   const { user, loading: authLoading } = useAuth();
   const { settings, setSettings, motion } = useSettings();
   const [active, setActive] = useState<NavId>('home');
+  const [authOpen, setAuthOpen] = useState(false);
   const [location, setLocation] = useState<GeoLocation>(() => {
     try {
       const stored = localStorage.getItem('aether.lastLocation');
@@ -132,12 +133,7 @@ function AppInner() {
   const condition = data?.current.condition ?? 'partly-cloudy';
   const isDay = data?.current.isDay ?? true;
 
-  // Show login page when not authenticated (after auth has finished loading)
-  if (!authLoading && !user) {
-    return <LoginPage />;
-  }
-
-  // Show loading state while auth is being restored
+  // Brief loading splash while auth session is being restored
   if (authLoading) {
     return (
       <div className="relative min-h-screen">
@@ -175,7 +171,17 @@ function AppInner() {
                   onToggleFavorite={() => toggleFavorite()}
                 />
               </div>
-              <NotificationBell />
+              {user ? (
+                <NotificationBell />
+              ) : (
+                <button
+                  onClick={() => setAuthOpen(true)}
+                  className="flex items-center gap-1.5 rounded-xl glass px-3.5 py-2 text-sm font-medium text-white transition hover:bg-white/10"
+                >
+                  <LogIn className="h-4 w-4" />
+                  <span className="hidden sm:inline">Sign In</span>
+                </button>
+              )}
             </div>
           }
         />
@@ -270,6 +276,7 @@ function AppInner() {
                   pushEnabled={pushEnabled}
                   onSubscribe={subscribe}
                   onUnsubscribe={unsubscribe}
+                  onOpenAuth={() => setAuthOpen(true)}
                 />
               )}
             </div>
@@ -278,6 +285,8 @@ function AppInner() {
 
         <MobileNav active={active} onChange={setActive} />
       </div>
+
+      <AuthPanel open={authOpen} onClose={() => setAuthOpen(false)} />
     </div>
   );
 }

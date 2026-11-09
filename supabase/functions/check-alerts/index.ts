@@ -1,5 +1,5 @@
 import { createClient } from 'npm:@supabase/supabase-js@2.45.4';
-import { webcrypto } from 'node:crypto';
+import webPush from 'npm:web-push@3.6.7';
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -10,10 +10,13 @@ const corsHeaders = {
 const supabaseUrl = Deno.env.get('SUPABASE_URL') ?? '';
 const serviceRoleKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? '';
 
-// VAPID keys are generated on first deploy if not present.
-// In a production setup these would be pre-generated and stored as secrets.
-const VAPID_PRIVATE_KEY = Deno.env.get('VAPID_PRIVATE_KEY') ?? '';
 const VAPID_PUBLIC_KEY = Deno.env.get('VAPID_PUBLIC_KEY') ?? '';
+const VAPID_PRIVATE_KEY = Deno.env.get('VAPID_PRIVATE_KEY') ?? '';
+const VAPID_SUBJECT = Deno.env.get('VAPID_SUBJECT') ?? 'mailto:alerts@aetherweather.app';
+
+if (VAPID_PUBLIC_KEY && VAPID_PRIVATE_KEY) {
+  webPush.setVapidDetails(VAPID_SUBJECT, VAPID_PUBLIC_KEY, VAPID_PRIVATE_KEY);
+}
 
 interface SavedLocation {
   user_id: string;
@@ -25,7 +28,7 @@ interface SavedLocation {
   longitude: number;
 }
 
-interface PushSubscription {
+interface PushSubscriptionRow {
   endpoint: string;
   p256dh: string;
   auth: string;
@@ -134,15 +137,31 @@ Deno.serve(async (req: Request) => {
                 .eq('user_id', userId);
 
               if (subs) {
-                for (const sub of subs as PushSubscription[]) {
+                for (const sub of subs as PushSubscriptionRow[]) {
                   try {
-                    await sendPushNotification(sub, {
-                      title: alert.title,
-                      body: `${alert.description} (${loc.name})`,
-                      tag: alertKey,
-                    });
+                    await webPush.sendNotification(
+                      {
+                        endpoint: sub.endpoint,
+                        keys: { p256dh: sub.p256dh, auth: sub.auth },
+                      },
+                      JSON.stringify({
+                        title: alert.title,
+                        body: `${alert.description} (${loc.name})`,
+                        icon: '/favicon.ico',
+                        badge: '/favicon.ico',
+                        tag: alertKey,
+                      })
+                    );
                     stats.pushed++;
-                  } catch {
+                  } catch (err) {
+                    // 410 Gone = subscription expired; remove it
+                    if (err instanceof webPush.WebPushError && err.statusCode === 410) {
+                      await supabase
+                        .from('user_push_subscriptions')
+                        .delete()
+                        .eq('user_id', userId)
+                        .eq('endpoint', sub.endpoint);
+                    }
                     stats.errors++;
                   }
                 }
@@ -273,159 +292,4 @@ async function checkWeatherAlerts(
   }
 
   return alerts;
-}
-
-async function sendPushNotification(
-  sub: PushSubscription,
-  payload: { title: string; body: string; tag: string }
-): Promise<void> {
-  // Web Push protocol: send a POST to the subscription endpoint
-  // with encrypted payload using the VAPID keys.
-  // This uses the standard Web Push encryption (RFC 8291 + RFC 8188).
-  const encrypted = await encryptPayload(
-    JSON.stringify(payload),
-    sub.p256dh,
-    sub.auth
-  );
-
-  const authHeader = await createVapidAuthHeader(sub.endpoint);
-
-  const res = await fetch(sub.endpoint, {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/octet-stream',
-      'Content-Encoding': 'aes128gcm',
-      'Content-Length': String(encrypted.length),
-      Authorization: authHeader.authorization,
-      'Crypto-Key': authHeader.cryptoKey,
-    },
-    body: encrypted,
-  });
-
-  if (!res.ok && res.status !== 201) {
-    throw new Error(`Push failed: ${res.status}`);
-  }
-}
-
-async function encryptPayload(
-  payload: string,
-  p256dh: string,
-  auth: string
-): Promise<Uint8Array> {
-  // Web Push encryption per RFC 8291 / RFC 8188 (aes128gcm)
-  const subscriberPublicKey = base64UrlToBytes(p256dh);
-  const authSecret = base64UrlToBytes(auth);
-
-  // Generate server ephemeral key pair
-  const serverKeys = await webcrypto.subtle.generateKey(
-    { name: 'ECDH', namedCurve: 'P-256' },
-    true,
-    ['deriveKey', 'deriveBits']
-  );
-
-  const serverEcdh = await webcrypto.subtle.exportKey('raw', serverKeys.publicKey);
-
-  // Import subscriber public key
-  const subscriberPub = await webcrypto.subtle.importKey(
-    'raw',
-    subscriberPublicKey,
-    { name: 'ECDH', namedCurve: 'P-256' },
-    false,
-    []
-  );
-
-  // Derive shared secret
-  const sharedSecret = await webcrypto.subtle.deriveBits(
-    { name: 'ECDH', public: subscriberPub },
-    serverKeys.privateKey,
-    256
-  );
-
-  // Derive PRK key (HKDF with auth secret)
-  const ikm = new Uint8Array(sharedSecret);
-  const prkKey = await webcrypto.subtle.importKey('raw', ikm, { name: 'HKDF' }, false, ['deriveKey']);
-  const prk = await webcrypto.subtle.deriveKey(
-    { name: 'HKDF', hash: 'SHA-256', salt: authSecret, info: new Uint8Array() },
-    prkKey,
-    { name: 'HMAC', hash: 'SHA-256', length: 256 },
-    true,
-    ['sign']
-  );
-
-  // This is a simplified implementation — for production, use a library like web-push
-  // For now we create the aes128gcm content coding
-  const payloadBytes = new TextEncoder().encode(payload);
-  const padding = 1;
-  const recordSize = 4096;
-
-  // Build the encrypted content
-  // Content coding header: salt(16) + rs(4) + idlen(1) + keyid(idlen)
-  const salt = webcrypto.getRandomValues(new Uint8Array(16));
-  const serverKeyBytes = new Uint8Array(serverEcdh);
-  const header = new Uint8Array(16 + 4 + 1 + serverKeyBytes.length);
-  header.set(salt, 0);
-  const view = new DataView(header.buffer);
-  view.setUint32(16, recordSize);
-  header[20] = serverKeyBytes.length;
-  header.set(serverKeyBytes, 21);
-
-  // For a production push, proper CEK/nonce derivation + AES-GCM encryption
-  // is needed. This implementation is a simplified placeholder that delegates
-  // to the push service. Real encryption requires the full RFC 8291 flow.
-  // The notification will still be delivered by the push service even without
-  // a payload (the service worker shows a default notification).
-  const body = new Uint8Array(header.length + payloadBytes.length + padding);
-  body.set(header, 0);
-  body.set(payloadBytes, header.length);
-
-  return body;
-}
-
-async function createVapidAuthHeader(endpoint: string): Promise<{
-  authorization: string;
-  cryptoKey: string;
-}> {
-  // VAPID JWT per RFC 8292
-  const audience = new URL(endpoint).origin;
-  const expiry = Math.floor(Date.now() / 1000) + 12 * 60 * 60;
-
-  const header = { typ: 'JWT', alg: 'ES256' };
-  const payload = {
-    aud: audience,
-    exp: expiry,
-    sub: 'mailto:alerts@aetherweather.app',
-  };
-
-  const headerB64 = base64UrlEncode(new TextEncoder().encode(JSON.stringify(header)));
-  const payloadB64 = base64UrlEncode(new TextEncoder().encode(JSON.stringify(payload)));
-  const unsigned = `${headerB64}.${payloadB64}`;
-
-  // Import VAPID private key and sign
-  // In production, the private key would be a proper ECDSA P-256 key
-  // For now, return a placeholder — real VAPID signing needs the key in proper format
-  const cryptoKey = `p256ecdsa=${VAPID_PUBLIC_KEY}`;
-
-  return {
-    authorization: `vapid t=${unsigned}, k=${VAPID_PUBLIC_KEY}`,
-    cryptoKey,
-  };
-}
-
-function base64UrlToBytes(b64url: string): Uint8Array {
-  const padding = '='.repeat((4 - (b64url.length % 4)) % 4);
-  const b64 = (b64url + padding).replace(/-/g, '+').replace(/_/g, '/');
-  const raw = atob(b64);
-  const bytes = new Uint8Array(raw.length);
-  for (let i = 0; i < raw.length; i++) {
-    bytes[i] = raw.charCodeAt(i);
-  }
-  return bytes;
-}
-
-function base64UrlEncode(bytes: Uint8Array): string {
-  let binary = '';
-  for (const b of bytes) {
-    binary += String.fromCharCode(b);
-  }
-  return btoa(binary).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
 }

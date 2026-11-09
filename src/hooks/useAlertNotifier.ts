@@ -5,8 +5,11 @@ import type { WeatherAlert, GeoLocation } from '@/types/weather';
 
 /**
  * Watches weather alerts for the active location and:
- * 1. Persists new alerts to the user_alert_notifications table (via upsert)
- * 2. Fires browser notifications if permission is granted and setting is on
+ * 1. Fires browser notifications for ALL users (logged in or not) when
+ *    notifications are enabled and permission is granted — these appear
+ *    in the device's OS-level notification center.
+ * 2. Persists new alerts to the database for logged-in users so they
+ *    appear in the in-app notification bell and sync across devices.
  */
 export function useAlertNotifier(
   alerts: WeatherAlert[],
@@ -18,8 +21,6 @@ export function useAlertNotifier(
   const initialized = useRef(false);
 
   useEffect(() => {
-    if (!user || !isSupabaseConfigured) return;
-
     // Skip the very first run — we don't want to notify on alerts that were
     // already present when the page loaded. Only notify on NEW alerts that
     // appear after initial load.
@@ -39,16 +40,25 @@ export function useAlertNotifier(
 
     lastAlertIds.current = currentIds;
 
-    // Persist new alerts to database (upsert to avoid duplicates)
-    void persistAlerts(newAlerts, user.id, location.name);
+    // Persist new alerts to database (logged-in users only)
+    if (user && isSupabaseConfigured) {
+      void persistAlerts(newAlerts, user.id, location.name);
+    }
 
-    // Fire browser notifications
+    // Fire browser notifications for ALL users — these show in the device
+    // notification center (Windows Action Center, macOS Notification Center,
+    // Android notification drawer, etc.)
     if (notificationsEnabled && 'Notification' in window && Notification.permission === 'granted') {
       for (const alert of newAlerts) {
         const severityLabel = alert.severity.charAt(0).toUpperCase() + alert.severity.slice(1);
         const body = `${severityLabel}: ${alert.description} (${location.name})`;
         try {
-          new Notification(alert.title, { body, icon: '/favicon.ico' });
+          new Notification(alert.title, {
+            body,
+            icon: '/favicon.ico',
+            tag: alert.id,
+            data: { location: location.name, severity: alert.severity },
+          });
         } catch {
           /* notifications may not be available in all contexts */
         }

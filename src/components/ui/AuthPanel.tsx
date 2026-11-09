@@ -40,11 +40,14 @@ export function AuthPanel({ open, onClose }: Props) {
         if (error) setError(error);
         else handleClose();
       } else {
-        const { error } = await signUp(email, password);
+        const { error, sessionCreated } = await signUp(email, password);
         if (error) {
           setError(error);
+        } else if (sessionCreated) {
+          // Email confirmation is off — user is already logged in
+          handleClose();
         } else {
-          setSuccess('Account created! You can now sign in.');
+          setSuccess('Account created! Check your email to confirm, then sign in.');
           setMode('signin');
           setPassword('');
         }

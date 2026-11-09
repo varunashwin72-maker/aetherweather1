@@ -6,7 +6,7 @@ interface AuthState {
   user: User | null;
   session: Session | null;
   loading: boolean;
-  signUp: (email: string, password: string) => Promise<{ error: string | null }>;
+  signUp: (email: string, password: string) => Promise<{ error: string | null; sessionCreated: boolean }>;
   signIn: (email: string, password: string) => Promise<{ error: string | null }>;
   signOut: () => Promise<void>;
 }
@@ -42,10 +42,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, []);
 
   const signUp = useCallback(async (email: string, password: string) => {
-    if (!isSupabaseConfigured) return { error: 'Authentication is not available.' };
-    const { error } = await supabase.auth.signUp({ email, password });
-    if (error) return { error: error.message };
-    return { error: null };
+    if (!isSupabaseConfigured) return { error: 'Authentication is not available.', sessionCreated: false };
+    const { data, error } = await supabase.auth.signUp({ email, password });
+    if (error) return { error: error.message, sessionCreated: false };
+    // When email confirmation is OFF, signUp creates a session immediately.
+    // onAuthStateChange will update user/session, but we report it so the UI
+    // can close the panel instead of showing "now sign in".
+    return { error: null, sessionCreated: Boolean(data.session) };
   }, []);
 
   const signIn = useCallback(async (email: string, password: string) => {

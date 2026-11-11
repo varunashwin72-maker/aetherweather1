@@ -64,6 +64,14 @@ export default {
         'snow-fall': 'snowFall 3s ease-in-out infinite',
         'flash': 'flash 4s ease-in-out infinite',
         'breathe': 'breathe 5s ease-in-out infinite',
+        'sun-bob': 'sunBob 5s ease-in-out infinite',
+        'sun-rays': 'sunRays 24s linear infinite',
+        'moon-float': 'moonFloat 9s ease-in-out infinite',
+        'moon-glow': 'moonGlow 6s ease-in-out infinite',
+        'needle-sway': 'needleSway 4s ease-in-out infinite',
+        'compass-ring': 'compassRing 30s linear infinite',
+        'draw-line': 'drawLine 1.4s ease-out forwards',
+        'fade-scale': 'fadeScale 0.5s cubic-bezier(0.16,1,0.3,1) forwards',
       },
       keyframes: {
         fadeIn: { '0%': { opacity: '0' }, '100%': { opacity: '1' } },
@@ -122,6 +130,38 @@ export default {
         breathe: {
           '0%,100%': { transform: 'scale(1)', opacity: '0.8' },
           '50%': { transform: 'scale(1.06)', opacity: '1' },
+        },
+        sunBob: {
+          '0%,100%': { transform: 'translateY(0)' },
+          '50%': { transform: 'translateY(-3px)' },
+        },
+        sunRays: {
+          '0%': { transform: 'rotate(0deg)' },
+          '100%': { transform: 'rotate(360deg)' },
+        },
+        moonFloat: {
+          '0%,100%': { transform: 'translateY(0) rotate(0deg)' },
+          '50%': { transform: 'translateY(-4px) rotate(2deg)' },
+        },
+        moonGlow: {
+          '0%,100%': { opacity: '0.5', transform: 'scale(1)' },
+          '50%': { opacity: '1', transform: 'scale(1.08)' },
+        },
+        needleSway: {
+          '0%,100%': { transform: 'rotate(-2deg)' },
+          '50%': { transform: 'rotate(2deg)' },
+        },
+        compassRing: {
+          '0%': { transform: 'rotate(0deg)' },
+          '100%': { transform: 'rotate(360deg)' },
+        },
+        drawLine: {
+          '0%': { strokeDashoffset: '1' },
+          '100%': { strokeDashoffset: '0' },
+        },
+        fadeScale: {
+          '0%': { opacity: '0', transform: 'scale(0.96)' },
+          '100%': { opacity: '1', transform: 'scale(1)' },
         },
       },
     },

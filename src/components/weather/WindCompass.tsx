@@ -18,6 +18,12 @@ export function WindCompass({ current, settings }: Props) {
   return (
     <div className="glass-card flex flex-col items-center gap-4 px-6 py-6">
       <div className="relative grid h-44 w-44 place-items-center">
+        {/* Slow rotating outer tick ring */}
+        <div className="absolute inset-0 animate-compass-ring" style={{ transformOrigin: 'center' }}>
+          <svg viewBox="0 0 120 120" className="h-44 w-44">
+            <circle cx="60" cy="60" r="57" fill="none" stroke="rgba(127,191,251,0.08)" strokeWidth="0.5" strokeDasharray="2 6" />
+          </svg>
+        </div>
         <svg viewBox="0 0 120 120" className="h-44 w-44">
           <circle cx="60" cy="60" r="54" fill="none" stroke="rgba(255,255,255,0.08)" strokeWidth="1" />
           <circle cx="60" cy="60" r="44" fill="none" stroke="rgba(255,255,255,0.06)" strokeWidth="1" />
@@ -40,9 +46,11 @@ export function WindCompass({ current, settings }: Props) {
             );
           })}
           <g transform={`rotate(${dir} 60 60)`} style={{ transition: 'transform 0.8s cubic-bezier(0.16,1,0.3,1)' }}>
-            <path d="M60,16 L54,60 L60,54 L66,60 Z" fill="#7fc1f5" className="drop-shadow-[0_0_6px_rgba(127,191,251,0.7)]" />
-            <path d="M60,104 L54,60 L60,66 L66,60 Z" fill="rgba(255,255,255,0.3)" />
-            <circle cx="60" cy="60" r="4" fill="#fff" />
+            <g className="animate-needle-sway" style={{ transformOrigin: '60px 60px' }}>
+              <path d="M60,16 L54,60 L60,54 L66,60 Z" fill="#7fc1f5" className="drop-shadow-[0_0_6px_rgba(127,191,251,0.7)]" />
+              <path d="M60,104 L54,60 L60,66 L66,60 Z" fill="rgba(255,255,255,0.3)" />
+              <circle cx="60" cy="60" r="4" fill="#fff" />
+            </g>
           </g>
         </svg>
         <div className="absolute flex flex-col items-center">

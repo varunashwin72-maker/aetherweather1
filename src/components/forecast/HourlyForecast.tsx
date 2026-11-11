@@ -134,6 +134,7 @@ export function HourlyForecast({ hours, days, settings }: Props) {
               onClick={() => setSelected(i)}
               role="option"
               aria-selected={isSel}
+              style={{ animation: `fadeScale 0.5s cubic-bezier(0.16,1,0.3,1) ${Math.min(i * 0.04, 0.6)}s both` }}
               className={cn(
                 'flex min-w-[76px] flex-col items-center gap-1.5 rounded-2xl border px-3 py-3 text-center transition-all',
                 isSel
@@ -327,8 +328,16 @@ function TempGraph({
             <stop offset="100%" stopColor="#5eead4" />
           </linearGradient>
         </defs>
-        <path d={area} fill="url(#tempFill)" />
-        <path d={path} fill="none" stroke="url(#tempLine)" strokeWidth="0.6" vectorEffect="non-scaling-stroke" />
+        <path d={area} fill="url(#tempFill)" className="animate-fade-in" />
+        <path
+          d={path}
+          fill="none"
+          stroke="url(#tempLine)"
+          strokeWidth="0.6"
+          vectorEffect="non-scaling-stroke"
+          pathLength={1}
+          style={{ strokeDasharray: 1, strokeDashoffset: 1, animation: 'drawLine 1.4s ease-out forwards' }}
+        />
         {points.map((p, i) => (
           <g key={i} onClick={() => onSelect(i)} className="cursor-pointer">
             <rect x={p.x - width / n / 2} y={0} width={width / n} height={height} fill="transparent" />

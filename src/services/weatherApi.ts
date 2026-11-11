@@ -63,6 +63,7 @@ interface OMDaily {
   uv_index_max: number[];
   sunrise: string[];
   sunset: string[];
+  moon_phase?: number[];
 }
 
 interface OMResponse {
@@ -137,6 +138,7 @@ export async function fetchWeather(location: GeoLocation): Promise<WeatherData> 
       'uv_index_max',
       'sunrise',
       'sunset',
+      'moon_phase',
     ].join(','),
     timezone: 'auto',
     forecast_days: '7',
@@ -384,7 +386,8 @@ function deriveAstronomy(daily: OMDaily, offsetMs: number): AstronomyData {
   const sunset = parseLocal(daily.sunset[0], offsetMs);
   const dayLength = sunset - sunrise;
   const solarNoon = sunrise + dayLength / 2;
-  const moonPhase = computeMoonPhase(new Date());
+  // Prefer the API-provided moon_phase (0..1, 0 = new moon); fall back to computed
+  const moonPhase = daily.moon_phase?.[0] != null ? daily.moon_phase[0] : computeMoonPhase(new Date());
   return {
     sunrise,
     sunset,
@@ -392,6 +395,7 @@ function deriveAstronomy(daily: OMDaily, offsetMs: number): AstronomyData {
     dayLength,
     moonPhase,
     moonIllumination: moonIllumination(moonPhase),
+    moonAge: moonPhase * 29.53,
   };
 }
 

@@ -110,6 +110,7 @@ export interface AstronomyData {
   moonset?: number;
   moonPhase: number;
   moonIllumination: number;
+  moonAge?: number;
 }
 
 export interface WeatherData {

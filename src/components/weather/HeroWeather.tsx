@@ -39,7 +39,7 @@ export function HeroWeather({ data, settings, loading, lastUpdated, onRefresh }:
       <div className="mt-6 flex items-center gap-4 sm:gap-8">
         <WeatherIcon condition={current.condition} isDay={current.isDay} className="h-20 w-20 sm:h-28 sm:w-28" />
         <div className="flex items-start">
-          <span className="font-display text-7xl font-semibold leading-none tracking-tighter text-white sm:text-8xl md:text-9xl">
+          <span className="font-display text-7xl font-semibold leading-none tracking-tighter text-white drop-shadow-[0_0_30px_rgba(127,191,251,0.3)] sm:text-8xl md:text-9xl animate-fade-up">
             {temp}
           </span>
           <span className="mt-2 text-3xl font-light text-white/70 sm:text-4xl">

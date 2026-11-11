@@ -33,6 +33,11 @@ export function SunMoonPanel({ astronomy }: Props) {
                 <stop offset="50%" stopColor="rgba(255,212,122,0.6)" />
                 <stop offset="100%" stopColor="rgba(127,191,251,0.2)" />
               </linearGradient>
+              <radialGradient id="sunCore" cx="50%" cy="50%" r="50%">
+                <stop offset="0%" stopColor="#fff3c4" />
+                <stop offset="60%" stopColor="#ffd47a" />
+                <stop offset="100%" stopColor="#fbbf24" />
+              </radialGradient>
             </defs>
             <path d="M10,70 Q100,-10 190,70" fill="none" stroke="rgba(255,255,255,0.15)" strokeWidth="1.5" />
             <path
@@ -43,13 +48,31 @@ export function SunMoonPanel({ astronomy }: Props) {
               strokeDasharray={`${dayProgress * 260} 260`}
               className="transition-all duration-1000"
             />
-            <circle
-              cx={10 + dayProgress * 180}
-              cy={70 - Math.sin(dayProgress * Math.PI) * 80}
-              r="6"
-              fill="#ffd47a"
-              className="drop-shadow-[0_0_10px_rgba(255,212,122,0.8)] animate-pulse-slow"
-            />
+            {/* Animated sun with rotating rays */}
+            <g
+              transform={`translate(${10 + dayProgress * 180}, ${70 - Math.sin(dayProgress * Math.PI) * 80})`}
+              className="animate-sun-bob"
+            >
+              <g className="animate-sun-rays" style={{ transformOrigin: 'center' }}>
+                {Array.from({ length: 8 }).map((_, i) => {
+                  const a = (i * 45 * Math.PI) / 180;
+                  return (
+                    <line
+                      key={i}
+                      x1={Math.cos(a) * 9}
+                      y1={Math.sin(a) * 9}
+                      x2={Math.cos(a) * 13}
+                      y2={Math.sin(a) * 13}
+                      stroke="rgba(255,212,122,0.6)"
+                      strokeWidth="1.2"
+                      strokeLinecap="round"
+                    />
+                  );
+                })}
+              </g>
+              <circle r="6" fill="url(#sunCore)" className="drop-shadow-[0_0_10px_rgba(255,212,122,0.8)]" />
+              <circle r="8" fill="none" stroke="rgba(255,212,122,0.25)" strokeWidth="0.8" className="animate-pulse-slow" />
+            </g>
           </svg>
         </div>
         <div className="mt-2 grid grid-cols-2 gap-3">
@@ -130,7 +153,7 @@ function MoonPhaseSVG({ phase, illumination }: { phase: number; illumination: nu
   const litPath = buildLitPath(cx, cy, r, terminatorRx, litSide, isGibbous);
 
   return (
-    <div className="relative shrink-0">
+    <div className="relative shrink-0 animate-moon-float" style={{ transformOrigin: 'center' }}>
       <svg width={size} height={size} viewBox={`0 0 ${size} ${size}`} className="drop-shadow-[0_0_12px_rgba(200,210,240,0.25)]">
         <defs>
           <radialGradient id="moonLit" cx="40%" cy="35%" r="65%">
@@ -160,7 +183,7 @@ function MoonPhaseSVG({ phase, illumination }: { phase: number; illumination: nu
         <circle cx={cx} cy={cy} r={r} fill="none" stroke="rgba(255,255,255,0.08)" strokeWidth="0.5" />
 
         {/* Outer glow */}
-        <circle cx={cx} cy={cy} r={r} fill="none" stroke="rgba(200,210,240,0.15)" strokeWidth="2" className="animate-pulse-slow" />
+        <circle cx={cx} cy={cy} r={r} fill="none" stroke="rgba(200,210,240,0.15)" strokeWidth="2" className="animate-moon-glow" />
       </svg>
     </div>
   );
